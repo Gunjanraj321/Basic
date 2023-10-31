@@ -1,5 +1,6 @@
 const http = require('http');
-const fs = require('fs')
+const fs = require('fs');
+const { on } = require('events');
 
 const server = http.createServer((req,res)=>{
     const url = req.url;
@@ -7,23 +8,29 @@ const server = http.createServer((req,res)=>{
     if(url === '/'){
         res.write('<html>')
         res.write('<head><title>Enter message</title></head>')
-        res.write('<body><form action="/message" method="POST" name="message"><input type="text"><button type="submit">Send</button></form></body></html>')
+        res.write('<body><form action="/message" method="POST"><input type="text" name="message"><button type="submit">Send</button></form></body></html>')
         return res.end()
     }
     if(url === '/message' && method === 'POST'){
-        fs.writeFileSync('message.text','Dummy')
-        res.statusCode=302
-        res.setHeader('Location','/')
-        return res.end();
+        const body = [];  // array to store data
+        req.on('data',(chunk)=>{  //we receive data using callback from webpage
+            console.log(chunk);
+            body.push(chunk); // here we push that data to body
+        })
+        return req.on('end',()=>{    //when request end , this end event is triggered , the data in body is concatenated and converted to a tring
+           const parsedBody= Buffer.concat(body).toString(); 
+           console.log(parsedBody);
+           const message = parsedBody.split('=')[1];
+           fs.writeFile('message.text',message,err=>{
+            res.statusCode=302
+            res.setHeader('Location','/')
+            return res.end();
+           });
+        });
     }
-    if(url === '/home'){
-        res.end('Welcome Home')
-    }
-    else if(url === '/about'){
-        res.end('Welcome to about us page')
-    }
-    else if(url === '/node'){
-       res.end('Welcome to my Node.js project');
+    if(url === '/'){
+        const mess= fs.readFileSync('./message.txt')
+        
     }
 
     res.statusCode = 200;
